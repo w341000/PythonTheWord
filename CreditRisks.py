@@ -43,12 +43,23 @@ def is_frequently(bsObj):
 # 获取元数据信息
 def get_metadata(bsObj):
 	base_table = bsObj.find("table", {"id": "Table31"})  # 基本信息中除了企业变更以外的其他信息
-	tydm = base_table.find('td', text="统一社会信用代码").find_parent().find_all("td")[-1].get_text().strip()
+	tydm_tag=base_table.find('td', text="统一社会信用代码")
+	if tydm_tag==None:
+		tydm=''
+	else:
+		tydm = tydm_tag.find_parent().find_all("td")[-1].get_text().strip()
 	qymc_tag = base_table.find('td', text="企业名称")
 	if qymc_tag == None:
 		qymc_tag = base_table.find('td', text="名称")
-	qymc = qymc_tag.find_parent().find_all("td")[-1].get_text().strip();
-	zch = base_table.find('td', text="注册号").find_parent().find_all("td")[-1].get_text().strip()
+	if qymc_tag==None:
+		qymc=''
+	else:
+		qymc = qymc_tag.find_parent().find_all("td")[-1].get_text().strip();
+	zch_tag = base_table.find('td', text="注册号")
+	if zch_tag==None:
+		zch=''
+	else:
+		zch=zch_tag.find_parent().find_all("td")[-1].get_text().strip()
 	jgdm_tag = base_table.find('td', text="机构代码")
 	if jgdm_tag == None:
 		jgdm = ''
