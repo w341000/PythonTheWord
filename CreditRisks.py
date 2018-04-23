@@ -9,24 +9,35 @@ import re
 import time
 import socket
 from urllib import error
+from random import choice
+import os
 
 max_col_length = 10  # 列最大数量
 
 
 # 打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
-def open_url(req):
-	socket.setdefaulttimeout(120)  # 120秒内没有打开web页面，就算超时
-	self_rotation = 5
+def open_url(req, timeout, proxys=[]):
+	# socket.setdefaulttimeout(120)  # 120秒内没有打开web页面，就算超时
+	self_rotation = 3
 	i = 0
 	while i < self_rotation:
 		try:
-			html = urlopen(req).read()
-			return html
+			# proxy = choice(proxys)
+			# proxy_obj = request.ProxyHandler(proxy)
+			# opener = request.build_opener(proxy_obj)
+			# opener.addheaders = [('User-Agent','Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36')]
+			# request.install_opener(opener)
+			html = urlopen(req, timeout=timeout).read()  # 30秒超时时间
+			bsObj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
+			if is_frequently(bsObj):
+				# proxys.remove(proxy)
+				return None
+			return bsObj
 		except:
 			print("从url发生连接错误,尝试重新获取连接")
 			i += 1
 			continue
-	raise RuntimeError('尝试5次连接失败,网络异常!')
+	return None
 
 
 # 对请求参数进行获取
@@ -42,9 +53,8 @@ def get_values(bsObj, values):
 
 
 # 获取每页公司中的url
-def get_infourl(bsObj, url_prefix):
+def get_infourl(bsObj, url_prefix,url_arr=[]):
 	ddTags = bsObj.find_all("dd")
-	url_arr = []
 	for ddTag in ddTags:
 		href = url_prefix + ddTag.find("a").get("href")
 		url_arr.append(href)
@@ -281,9 +291,72 @@ def get_promptinfo(bsObj, info_table=[], metedata={}):
 	do_reverse_table(info_table, filter_table["reverse_tables"], metedata)  # 处理反转table
 
 
+# 从文本文件中按行读取ip代理信息
+def get_proxyip_pool(file):
+	with open(file) as inf:
+		lines = inf.readlines()
+		proxys = []
+		for i in range(0, len(lines)):
+			proxy_host = "http://" + lines[i].strip("\n")
+			proxy_temp = {"http": proxy_host}
+			proxys.append(proxy_temp)
+		return proxys
+
+# 获取所有url地址
+def get_all_url_arr():
+	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)', 'Host': 'www.szcredit.org.cn',
+			   'Pragma': 'no-cache'
+		, 'Referer': 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx', 'Upgrade-Insecure-Requests': '1'
+		, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+		, 'Accept-Language': 'zh-CN,zh;q=0.9'
+			   }
+	# 深圳信用网信用风险提示url
+	main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
+	values = {}  # post请求携带的参数
+	url_arr=[]
+	try:
+		for i in range(139):
+			print('当前第' + str(i + 1) + '页')
+			values['turnPageBar$txtPageSize'] = 25
+			values['turnPageBar$txtPageNum'] = i
+			data = parse.urlencode(values).encode('utf-8')
+			req = request.Request(url=main_url, data=data, headers=headers)
+			html_obj = open_url(req, 5)
+			get_values(html_obj, values)
+			get_infourl(html_obj, 'https://www.szcredit.org.cn/web/GSPT/',url_arr)  # 获取每页各个公司对应的url
+
+		return url_arr
+	except RuntimeError as e:
+		print("获取url地址发生异常")
+
+
+# 读取已经处理的url
+def get_writed_url(f):
+	if os.path.isfile(f):#文件存在
+		with open(f,'r') as file:
+			writed_url=[]
+			for line in file.readlines():
+				line=line.strip()  # 把末尾的'\n'删掉
+				writed_url.append(writed_url)
+	else:
+		return []
+
+
+# 写入已经处理的url
+def write_writed_url(f,writed_url=[]):
+	with open('pi_digits.txt','w') as f:
+		for url in writed_url:
+			url=url.strip()+'\n'
+			f.write(url)
+
 # 入口函数
 def do_search():
-	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'}
+	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)', 'Host': 'www.szcredit.org.cn',
+			   'Pragma': 'no-cache'
+		, 'Referer': 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx', 'Upgrade-Insecure-Requests': '1'
+		, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+		, 'Accept-Language': 'zh-CN,zh;q=0.9'
+			   }
 	# 深圳信用网信用风险提示url
 	main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
 	values = {}  # post请求携带的参数
@@ -294,39 +367,31 @@ def do_search():
 				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的基本信息数据
 
 	info_table = base_table.copy()  # 存放抓取到的提示信息数据
-	try:
-		for i in range(139):
-			print('当前第' + str(i + 1) + '页')
-			values['turnPageBar$txtPageSize'] = 25
-			values['turnPageBar$txtPageNum'] = i
-			data = parse.urlencode(values).encode('utf-8')
-			req = request.Request(url=main_url, data=data, headers=headers)
-			html = open_url(req)
-			html_obj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
-			if is_frequently(html_obj):
-				print("查询太频繁:当前第" + str(i) + "页,睡眠1小时")
-				time.sleep(3600)
-			get_values(html_obj, values)
-			url_arr = get_infourl(html_obj, 'https://www.szcredit.org.cn/web/GSPT/')  # 获取每页各个公司对应的url
-			i = 0
-			while i < len(url_arr):
-				url = url_arr[i]
-				req = request.Request(url=url, headers=headers)
-				html = open_url(req)
-				bsObj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
-				if is_frequently(bsObj):
-					print("查询太频繁,睡眠1小时")
-					time.sleep(3600)
-					continue
-				get_info(bsObj, base_table, info_table)  # 数据解析
-				time.sleep(20)  # 间隔20秒
-				i += 1
-	except RuntimeError as e:
-		print("发生异常,保存第1页到第" + str(i + 1) + "页抓取的数据")
+	proxies = get_proxyip_pool('D:\\可用ip.txt')
+	delay = 15#间隔时间
+	url_arr=get_all_url_arr()#获取所有url
+	f='d://writed_url.txt'#保存已经处理的url
+	writed_url=get_writed_url(f)
+	for url in url_arr:
+		if url in writed_url:#已经写入的url
+			continue
+
+		req = request.Request(url=url, headers=headers)
+		bsObj = open_url(req, 20)
+		if bsObj==None:
+			print('请求太频繁,保存现有数据')
+			break
+		else:
+			writed_url.append(url)
+			get_info(bsObj, base_table, info_table)  # 数据解析
+			time.sleep(delay)  # 间隔时间
+
+
 	base_table_df = DataFrame(base_table)
 	info_table_df = DataFrame(info_table)
-	base_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_base.csv", index=False, sep=',')
-	info_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_info.csv", index=False, sep=',')
+	base_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_base.csv",mode='a+', index=False, sep=',',header=False)#追加模式
+	info_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_info.csv",mode='a+', index=False, sep=',',header=False)#追加模式
+	write_writed_url(f,writed_url)
 
 
 def test():
@@ -334,13 +399,15 @@ def test():
 				  'col8': [], 'col9': [], '所属分类': [], '分组序号': [], '企业名称': [], '注册号': [], '统一社会信用代码': [],
 				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的基本信息数据
 	info_table = base_table.copy()  # 存放抓取到的提示信息数据
-	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'}
+	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)','Host':'www.szcredit.org.cn','Pragma':'no-cache'
+			   ,'Referer':'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx','Upgrade-Insecure-Requests':'1'
+			   ,'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+			   ,'Accept-Language':'zh-CN,zh;q=0.9'
+			   }
 	url = 'https://www.szcredit.org.cn/web/GSPT/newGSPTDetail3.aspx?ID=3d0ae40633ff41edae1c38baa0b02307'
 	req = request.Request(url=url, headers=headers)
-	html = open_url(req)
-	bsObj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
-	if is_frequently(bsObj):
-		print("查询太频繁")
+	bsObj = open_url(req)
+
 	get_info(bsObj, base_table, info_table)
 	base_table_df = DataFrame(base_table)
 	info_table_df = DataFrame(info_table)

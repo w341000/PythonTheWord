@@ -16,12 +16,12 @@ from urllib import error
 
 # 打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
 def open_url(url,timeout):
-	socket.setdefaulttimeout(timeout)  # timeout秒内没有打开web页面，就算超时
+	# socket.setdefaulttimeout(timeout)  # timeout秒内没有打开web页面，就算超时
 	self_rotation = 5
 	i = 0
 	while i<self_rotation:
 		try:
-			html = urlopen(url).read()
+			html = urlopen(url,timeout=timeout).read()
 			return html
 		except: #处理所有异常
 			print("从url发生连接错误,尝试重新获取连接")
