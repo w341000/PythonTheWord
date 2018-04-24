@@ -15,7 +15,7 @@ def get_proxyip_pool(file):
 
 if __name__ == "__main__":
     #访问网址
-    url = 'http://myip.kkcha.com/'
+    url = 'https://www.szcredit.org.cn/web/GSPT/newGSPTDetail3.aspx?ID=0433e37333c44d14a56af16b7aaf153e'
     main_url='http://www.whatismyip.com.tw/'
     # proxys = get_proxyip_pool('D:\\可用ip.txt')
     proxy={'http':'203.174.112.13:3128'}
@@ -30,8 +30,8 @@ if __name__ == "__main__":
     #安装OPener
     #request.install_opener(opener)
     #使用自己安装好的Opener
-    response = opener.open(req,timeout=10)
+    response = request.urlopen(req,timeout=10)
     #读取相应信息并解码
-    html = response.read().decode("utf-8")
+    html = response.read().decode("gb18030")
     #打印信息
     print(html)

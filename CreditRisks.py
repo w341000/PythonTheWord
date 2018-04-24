@@ -18,23 +18,23 @@ max_col_length = 10  # 列最大数量
 # 打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
 def open_url(req, timeout, proxys=[]):
 	# socket.setdefaulttimeout(120)  # 120秒内没有打开web页面，就算超时
-	self_rotation = 3
+	self_rotation = 10
 	i = 0
 	while i < self_rotation:
 		try:
-			# proxy = choice(proxys)
-			# proxy_obj = request.ProxyHandler(proxy)
-			# opener = request.build_opener(proxy_obj)
-			# opener.addheaders = [('User-Agent','Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36')]
-			# request.install_opener(opener)
-			html = urlopen(req, timeout=timeout).read()  # 30秒超时时间
+			html = urlopen(req, timeout=timeout).read()  # 超时时间
 			bsObj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
 			if is_frequently(bsObj):
-				# proxys.remove(proxy)
+				print('请求太频繁')
 				return None
 			return bsObj
-		except:
-			print("从url发生连接错误,尝试重新获取连接")
+		except error.HTTPError as e:
+			if i>1:
+				raise e  # 抛出这个http异常,表示该url有问题
+			i += 1
+			continue
+		except Exception as e:
+			print("从url发生连接错误,尝试重新获取连接:"+repr(e))
 			i += 1
 			continue
 	return None
@@ -160,6 +160,9 @@ def get_change_info(bsObj, table, metedata):
 			else:
 				td = tds[i]
 				text = td.get_text()
+				pattern = re.compile('(\[.*\])+')
+				text = re.sub(pattern, '', text)
+				text=text.replace('\n','')#替换换行符
 				table[key].append(text)
 
 
@@ -197,7 +200,11 @@ def do_normal_table(table, normal_tables=[], metedata={}):
 					table[key].append('')
 				else:
 					td = tds[i]
-					table[key].append(td.get_text())
+					text = td.get_text()
+					pattern = re.compile('(\[.*\])+')
+					text = re.sub(pattern, '', text)
+					text = text.replace('\n', '')  # 替换换行符
+					table[key].append(text)
 
 
 # 对需要反转的表格进行处理
@@ -244,6 +251,7 @@ def do_reverse_table(table, reverse_tables=[], metedata={}):
 					text = td.get_text()
 					pattern = re.compile('(\[.*\])+')
 					text = re.sub(pattern, '', text)
+					text = text.replace('\n', '')  # 替换换行符
 					table[key].append(text)
 
 
@@ -304,30 +312,44 @@ def get_proxyip_pool(file):
 
 # 获取所有url地址
 def get_all_url_arr():
-	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)', 'Host': 'www.szcredit.org.cn',
-			   'Pragma': 'no-cache'
-		, 'Referer': 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx', 'Upgrade-Insecure-Requests': '1'
-		, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
-		, 'Accept-Language': 'zh-CN,zh;q=0.9'
-			   }
-	# 深圳信用网信用风险提示url
-	main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
-	values = {}  # post请求携带的参数
-	url_arr=[]
-	try:
-		for i in range(139):
-			print('当前第' + str(i + 1) + '页')
-			values['turnPageBar$txtPageSize'] = 25
-			values['turnPageBar$txtPageNum'] = i
-			data = parse.urlencode(values).encode('utf-8')
-			req = request.Request(url=main_url, data=data, headers=headers)
-			html_obj = open_url(req, 5)
-			get_values(html_obj, values)
-			get_infourl(html_obj, 'https://www.szcredit.org.cn/web/GSPT/',url_arr)  # 获取每页各个公司对应的url
+	f='d://all_url_arr.txt'
+	if os.path.isfile(f):#文件存在
+		with open(f,'r') as file:
+			url_arr=[]
+			for line in file.readlines():
+				line=line.strip()  # 把末尾的'\n'删掉
+				url_arr.append(line)
+			return url_arr
+	else:
+		headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)', 'Host': 'www.szcredit.org.cn',
+				   'Pragma': 'no-cache'
+			, 'Referer': 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx', 'Upgrade-Insecure-Requests': '1'
+			, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+			, 'Accept-Language': 'zh-CN,zh;q=0.9'
+				   }
+		# 深圳信用网信用风险提示url
+		main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
+		values = {}  # post请求携带的参数
+		url_arr=[]
+		try:
+			for i in range(139):
+				print('当前第' + str(i + 1) + '页')
+				values['turnPageBar$txtPageSize'] = 25
+				values['turnPageBar$txtPageNum'] = i
+				data = parse.urlencode(values).encode('utf-8')
+				req = request.Request(url=main_url, data=data, headers=headers)
+				html_obj = open_url(req, 5)
+				get_values(html_obj, values)
+				get_infourl(html_obj, 'https://www.szcredit.org.cn/web/GSPT/',url_arr)  # 获取每页各个公司对应的url
+			# 将获取的url数组存入磁盘
+			with open(f, 'w') as file:
+				for url in url_arr:
+					url = url.strip() + '\n'
+					file.write(url)
 
-		return url_arr
-	except RuntimeError as e:
-		print("获取url地址发生异常")
+			return url_arr
+		except RuntimeError as e:
+			print("获取url地址发生异常")
 
 
 # 读取已经处理的url
@@ -337,17 +359,40 @@ def get_writed_url(f):
 			writed_url=[]
 			for line in file.readlines():
 				line=line.strip()  # 把末尾的'\n'删掉
-				writed_url.append(writed_url)
+				writed_url.append(line)
+
+			return writed_url
 	else:
 		return []
 
 
+
 # 写入已经处理的url
 def write_writed_url(f,writed_url=[]):
-	with open('pi_digits.txt','w') as f:
+	with open(f,'w') as file:
 		for url in writed_url:
 			url=url.strip()+'\n'
-			f.write(url)
+			file.write(url)
+
+#获取错误的url
+def get_error_url(f):
+	if os.path.isfile(f):#文件存在
+		with open(f,'r') as file:
+			error_url=[]
+			for line in file.readlines():
+				line=line.strip()  # 把末尾的'\n'删掉
+				error_url.append(line)
+
+			return error_url
+	else:
+		return []
+
+# 写入产生错误的的url,如504等
+def write_error_url(f,error_url=[]):
+	with open(f,'w') as file:
+		for url in error_url:
+			url=url.strip()+'\n'
+			file.write(url)
 
 # 入口函数
 def do_search():
@@ -359,39 +404,50 @@ def do_search():
 			   }
 	# 深圳信用网信用风险提示url
 	main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
-	values = {}  # post请求携带的参数
 	base_table = {'col0': [], 'col1': [], 'col2': [], 'col3': [], 'col4': [], 'col5': [], 'col6': [], 'col7': [],
 				  'col8': [], 'col9': [], '所属分类': [],
 				  '分组序号': [], '企业名称': [], '注册号': [],
 				  '统一社会信用代码': [],
 				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的基本信息数据
 
-	info_table = base_table.copy()  # 存放抓取到的提示信息数据
-	proxies = get_proxyip_pool('D:\\可用ip.txt')
+	info_table = {'col0': [], 'col1': [], 'col2': [], 'col3': [], 'col4': [], 'col5': [], 'col6': [], 'col7': [],
+				  'col8': [], 'col9': [], '所属分类': [],
+				  '分组序号': [], '企业名称': [], '注册号': [],
+				  '统一社会信用代码': [],
+				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的提示信息数据
 	delay = 15#间隔时间
 	url_arr=get_all_url_arr()#获取所有url
 	f='d://writed_url.txt'#保存已经处理的url
 	writed_url=get_writed_url(f)
+	error_url_file='d://error_url.txt'
+	error_url=get_error_url(error_url_file)
+	print('开始进行数据获取')
 	for url in url_arr:
-		if url in writed_url:#已经写入的url
+		if url in error_url:  # 该url是发生错误的url
 			continue
-
+		if url in writed_url:  # 已经写入的url
+			continue
 		req = request.Request(url=url, headers=headers)
-		bsObj = open_url(req, 20)
-		if bsObj==None:
-			print('请求太频繁,保存现有数据')
+		try:
+			bsObj = open_url(req, 90)
+		except error.HTTPError as e:
+			print('url:'+url+'请求失败,将该url保存到错误列表中并跳过')
+			error_url.append(url)  # 发生了错误的url
+			continue
+		if bsObj is None:
+			print('请求太频繁或建立连接失败,保存现有数据')
 			break
 		else:
 			writed_url.append(url)
 			get_info(bsObj, base_table, info_table)  # 数据解析
 			time.sleep(delay)  # 间隔时间
 
-
 	base_table_df = DataFrame(base_table)
 	info_table_df = DataFrame(info_table)
 	base_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_base.csv",mode='a+', index=False, sep=',',header=False)#追加模式
 	info_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_info.csv",mode='a+', index=False, sep=',',header=False)#追加模式
-	write_writed_url(f,writed_url)
+	write_writed_url(f,writed_url)#写入已经处理的url
+	write_error_url(error_url_file,error_url)#写入产生http错误的url
 
 
 def test():

@@ -3,7 +3,7 @@ from urllib import request
 from queue import Queue
 from threading import Thread
 from queue import Empty
-
+from urllib import error
 
 def do_checkip(q,valid_ips,timeout):
 	# 用这个网页去验证，遇到不可用ip会抛异常
@@ -63,6 +63,16 @@ def checkip():
 			except Empty:
 				break
 
-checkip()
-
+try:
+	try:
+		req = request.urlopen('https://www.szcredit.org.cn/web/GSPT/CreditRiskListaabb.aspx', timeout=3).read()
+	except error.HTTPError as e:
+		code=e.code
+		print(code==403)
+		print(repr(e))
+		raise  e
+	except Exception as e:
+		print(repr(e))
+except error.HTTPError as e:
+	print('这是错误的url')
 

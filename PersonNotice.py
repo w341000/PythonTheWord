@@ -109,7 +109,7 @@ def get_person_info(url, person_info):
 		if text != None:
 			href = main_div.find('div', {'class': 'nr'}).find('a').get('href')
 			doc_url = get_docurl(url, href)
-			download2person_info(doc_url,person_info)
+			download2person_info(doc_url, person_info)
 		else:
 			print('该页面没有表格或doc文档')
 	else:
