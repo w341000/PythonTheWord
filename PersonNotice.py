@@ -134,7 +134,7 @@ def get_person_info(url, person_info):
 		'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
 	time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
 	table_tag = bsObj.find("table")
-	extra = {'期数': issues, '时间': time}
+	extra = {'期数': issues, '时间': time, '标题': title}
 	if table_tag is None:  # 没有table标签,尝试抓取下载的连接地址并下载doc文件
 		text = re.search(re.compile("(附件)+"), main_div.get_text())
 		if text is not None:
@@ -175,12 +175,12 @@ def get_reward(url, data_arr):
 	if content is not None:
 		issues = content.group()[1:-1]  # 跳过括号
 	else:
-		issues = title
+		issues = ''
 	time_text = main_div.find('p', {
 		'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
 	time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
 	table_tag = bsObj.find("table")
-	extra = {'期数': issues, '时间': time}
+	extra = {'期数': issues, '时间': time, '标题': title}
 	if table_tag is None:  # 没有table标签,尝试抓取下载的连接地址并下载doc文件
 		text = re.search(re.compile("(附件)+"), main_div.get_text())
 		if text is not None:
@@ -221,15 +221,15 @@ def get_assessment(url, data_arr):
 	if content is not None:
 		issues = content.group()[1:-1]  # 跳过括号
 	else:
-		issues = title
+		issues = ''
 	time_text = main_div.find('p', {
 		'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
 	time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
-	extra = {'期数': issues, '时间': time}
+	extra = {'期数': issues, '时间': time, '标题': title}
 	# 没有table标签,尝试抓取下载的连接地址并下载doc文件
 	text = re.search(re.compile("(附件)+"), main_div.get_text())
 	if text is not None:
-		li_tags=main_div.find('div', {'class': 'nr'}).find_all('li')
+		li_tags = main_div.find('div', {'class': 'nr'}).find_all('li')
 		for li_tag in li_tags:
 			a_tag = li_tag.find('a')
 			if a_tag is None:
@@ -245,7 +245,7 @@ def get_assessment(url, data_arr):
 def do_search(page=24):
 	person_info = []  # 高层次专业人才
 	person_reward = []  # 高层次人才奖励补贴人员
-	person_assessment=[] #高层次人才评估结果
+	person_assessment = []  # 高层次人才评估结果
 	url_prefix = "http://www.szhrss.gov.cn/ztfw/gccrc/xwgg/gccrc/"  # +index.htm"
 	for i in range(page):
 		url = ""
@@ -260,9 +260,9 @@ def do_search(page=24):
 		reward_url_arr = get_infourl(url, "高层次人才奖励补贴拟发放人员名单公示公告")
 		for url_reward in reward_url_arr:
 			get_reward(url_reward, person_reward)
-		assessment_url_arr=get_infourl(url,'.*高层次专业人才.*评估.*公示')
+		assessment_url_arr = get_infourl(url, '.*高层次专业人才.*评估.*公示')
 		for assessment_url in assessment_url_arr:
-			get_assessment(assessment_url,person_assessment)
+			get_assessment(assessment_url, person_assessment)
 	for data in person_info:  # 删除所有序号
 		if data.get('序号'):
 			data.pop('序号')
@@ -277,7 +277,7 @@ def do_search(page=24):
 				continue
 			else:
 				temp_data[key] = data[key]
-		person_assessment[i]=temp_data
+		person_assessment[i] = temp_data
 	for i in range(len(person_reward)):
 		data = person_reward[i]
 		temp_data = {}
@@ -293,10 +293,11 @@ def do_search(page=24):
 	DataFrame(person_info).to_csv("D:\\011111111111111111111111\\00临时文件\\personNotice.csv", index=False, sep=',')
 	DataFrame(person_reward).to_csv("D:\\011111111111111111111111\\00临时文件\\personNotice_reward.csv", index=False,
 									sep=',')
-	DataFrame(person_assessment).to_csv("D:\\011111111111111111111111\\00临时文件\\personNotice_assessment.csv", index=False,
-									sep=',')
+	DataFrame(person_assessment).to_csv("D:\\011111111111111111111111\\00临时文件\\personNotice_assessment.csv",
+										index=False,
+										sep=',')
 
 
 if __name__ == "__main__":
-	do_search()
-# print(re.search('.*高层次专业人才.*评估.*公示','深圳市高层次专业人才任期评估结果公示（2017年3月）'))
+	# do_search()
+	print('123\n456'.replace('\n',''))

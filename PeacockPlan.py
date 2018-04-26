@@ -77,7 +77,8 @@ def download2person_info(url, data_arr=[],extra=None):
 			if row:
 				app = {}
 				for i in range(len(header_row_values)):
-					app[header_row_values[i]] = row[i]  # 表头与数据对应
+					cell_value=str(row[i]).replace('\n',' ')#过滤换行符号
+					app[header_row_values[i]] = cell_value  # 表头与数据对应
 				if extra is not None and isinstance(extra, dict):
 					for key in extra:
 						value = extra[key]
@@ -93,12 +94,16 @@ def get_info_data(url='', person_info=[]):
 	try:
 		html = spider_util.open_url(url, 5, 20)  # 20秒超时
 		bsObj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
-		main_div = bsObj.find('div', {'class': 'con'})
-		# text = re.search(re.compile("(附件)+"), main_div.get_text())
+		main_div = bsObj.find('div', {'class': 'conRight_text2'})
+		title = main_div.find('h4').get_text()
+		time_text = main_div.find('p', {
+			'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
+		time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
+		extra = {'时间': time, '标题': title}
 		li_tag = bsObj.find('li')
 		href=li_tag.find('a').get('href')
 		doc_url = get_xls_url(url, href)
-		download2person_info(doc_url, person_info)
+		download2person_info(doc_url, person_info,extra=extra)
 	except Exception as e:
 		print('获取孔雀计划人才数据失败,原因:%s' % e)
 
