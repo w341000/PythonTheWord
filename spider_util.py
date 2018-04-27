@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 # 爬虫工具类
-from urllib.request import urlopen
 import os
-
 import re
+from urllib.request import urlopen
 
 
 def open_url(url, self_rotation=5, timeout=5):

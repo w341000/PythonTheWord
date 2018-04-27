@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 # 爬取深圳信用网信用风险相关企业数据
-from urllib.request import urlopen
-from urllib import parse, request
-from bs4 import BeautifulSoup
-import pandas as pd
-from pandas import DataFrame, Series
+import os
 import re
 import time
-import socket
 from urllib import error
-from random import choice
-import os
+from urllib import parse, request
+from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
+from pandas import DataFrame
 
 max_col_length = 10  # 列最大数量
 
 
-def open_url(req, timeout,self_rotation=10):
+def open_url(req, timeout, self_rotation=10):
 	"""
 	打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
 	:param req: request请求对象
@@ -125,8 +123,14 @@ def get_metadata(bsObj):
 	return metedata
 
 
-# 获取公司信息中的信息(入口函数)
 def get_info(bsObj, base_table, info_table):
+	"""
+	获取深圳信用网中的公司所有信息
+	:param bsObj: 公司页面文档对象
+	:param base_table: 保存公司基本信息的对象
+	:param info_table: 保存公司提示信息的对象
+	:return:
+	"""
 	metedata = get_metadata(bsObj)
 	get_baseinfo(bsObj, base_table, metedata)
 	get_promptinfo(bsObj, info_table, metedata)
@@ -350,10 +354,11 @@ def get_promptinfo(bsObj, info_table, metedata):
 	do_reverse_table(info_table, filter_table["reverse_tables"], metedata)  # 处理反转table
 
 
-def get_all_url_arr(f='d://all_url_arr.txt', page=139):
+def get_all_url_arr(main_url, f, page):
 	"""
 	获取企业信用风险中的所有公司的url地址,将会首先尝试从文件中读取所有url,如果文件不存在则尝试从网络中获取
 	所有链接并返回列表,链接将被写入到文本中以备下次使用
+	:param main_url: 获取链接主页面地址
 	:param page: 总页数
 	:param f: 包含url的文件路径
 	:return: 包含所有url的列表
@@ -370,10 +375,7 @@ def get_all_url_arr(f='d://all_url_arr.txt', page=139):
 				   'Pragma': 'no-cache'
 			, 'Referer': 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx', 'Upgrade-Insecure-Requests': '1'
 			, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
-			, 'Accept-Language': 'zh-CN,zh;q=0.9'
-				   }
-		# 深圳信用网信用风险提示url
-		main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
+			, 'Accept-Language': 'zh-CN,zh;q=0.9'}
 		values = {}  # post请求携带的参数
 		url_arr = []
 		try:
@@ -463,7 +465,7 @@ def do_search():
 				  '统一社会信用代码': [],
 				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的提示信息数据
 	delay = 15  # 间隔时间
-	url_arr = get_all_url_arr()  # 获取所有url
+	url_arr = get_all_url_arr(main_url, f='d://all_url_arr.txt', page=139)  # 获取所有url
 	f = 'd://writed_url.txt'  # 保存已经处理的url
 	writed_url = get_writed_url(f)
 	error_url_file = 'd://error_url.txt'

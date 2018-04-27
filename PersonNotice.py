@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 # 对深圳市人力资源和社会保障局的高层次专业人才公式公告爬取数据
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
-import pandas as pd
-from pandas import DataFrame, Series
-import csv
-import os
-import win32com, re
-from win32com.client import Dispatch, constants
-from docx import Document
+import re
+import time
 import urllib
-import socket
-from urllib import error
-import spider_util
-import office_util
+from urllib.request import urlopen
+
 import xlrd
+from bs4 import BeautifulSoup
+from pandas import DataFrame
+
+import office_util
+import spider_util
 
 
 def get_infourl(url, pattern):
@@ -132,9 +128,10 @@ def get_person_info(url, person_info):
 		issues = spider_util.chinese2digits(issues)
 	time_text = main_div.find('p', {
 		'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
-	time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
 	table_tag = bsObj.find("table")
-	extra = {'期数': issues, '时间': time, '标题': title}
+	release_time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
+	crawl_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	extra = {'期数': issues, '发布时间': release_time, '标题': title, '爬取时间': crawl_time}
 	if table_tag is None:  # 没有table标签,尝试抓取下载的连接地址并下载doc文件
 		text = re.search(re.compile("(附件)+"), main_div.get_text())
 		if text is not None:
@@ -178,9 +175,10 @@ def get_reward(url, data_arr):
 		issues = ''
 	time_text = main_div.find('p', {
 		'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
-	time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
 	table_tag = bsObj.find("table")
-	extra = {'期数': issues, '时间': time, '标题': title}
+	release_time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
+	crawl_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	extra = {'期数': issues, '发布时间': release_time, '标题': title, '爬取时间': crawl_time}
 	if table_tag is None:  # 没有table标签,尝试抓取下载的连接地址并下载doc文件
 		text = re.search(re.compile("(附件)+"), main_div.get_text())
 		if text is not None:
@@ -224,8 +222,9 @@ def get_assessment(url, data_arr):
 		issues = ''
 	time_text = main_div.find('p', {
 		'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
-	time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
-	extra = {'期数': issues, '时间': time, '标题': title}
+	release_time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
+	crawl_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	extra = {'期数': issues, '发布时间': release_time, '标题': title,'爬取时间':crawl_time}
 	# 没有table标签,尝试抓取下载的连接地址并下载doc文件
 	text = re.search(re.compile("(附件)+"), main_div.get_text())
 	if text is not None:
@@ -299,5 +298,5 @@ def do_search(page=24):
 
 
 if __name__ == "__main__":
-	# do_search()
-	print('123\n456'.replace('\n',''))
+	do_search()
+	# print('123\n456'.replace('\n',''))

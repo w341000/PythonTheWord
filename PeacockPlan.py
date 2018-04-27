@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # 爬取人社局中的孔雀计划相关数据
+import re
+import time
+import urllib
+
 import xlrd
+from bs4 import BeautifulSoup
+from pandas import DataFrame
 
 import spider_util
-import office_util
-from bs4 import BeautifulSoup
-from pandas import DataFrame, Series
-import re
-import urllib
 
 
 def get_infourl(url, pattern):
@@ -33,6 +34,8 @@ def get_infourl(url, pattern):
 			href = url_prefix + aTag.attrs["href"][2:]
 			url_arr.append(href)
 	return url_arr
+
+
 # 获取doc文档的路径地址
 
 
@@ -45,7 +48,7 @@ def get_xls_url(cur_url, href):
 	return url
 
 
-def download2person_info(url, data_arr=[],extra=None):
+def download2person_info(url, data_arr=[], extra=None):
 	"""
 	下载文档并导入列表中
 	:param url:
@@ -77,7 +80,7 @@ def download2person_info(url, data_arr=[],extra=None):
 			if row:
 				app = {}
 				for i in range(len(header_row_values)):
-					cell_value=str(row[i]).replace('\n',' ')#过滤换行符号
+					cell_value = str(row[i]).replace('\n', ' ')  # 过滤换行符号
 					app[header_row_values[i]] = cell_value  # 表头与数据对应
 				if extra is not None and isinstance(extra, dict):
 					for key in extra:
@@ -96,14 +99,20 @@ def get_info_data(url='', person_info=[]):
 		bsObj = BeautifulSoup(html, "html.parser", from_encoding="gb18030")
 		main_div = bsObj.find('div', {'class': 'conRight_text2'})
 		title = main_div.find('h4').get_text()
+		issues = re.search('第.*批', title)
+		if issues:
+			issues = spider_util.chinese2digits(issues.group()[1:-1])
+		else:
+			issues = ''
 		time_text = main_div.find('p', {
 			'style': 'text-align:center; line-height:22px; color:#333;background-color: #efefef;'}).get_text().strip()
-		time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
-		extra = {'时间': time, '标题': title}
+		release_time = re.search('\d{3,4}\-\d{1,2}\-\d{1,2}', time_text).group()
+		crawl_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+		extra = {'发布时间': release_time, '标题': title, '批次': issues,'爬取时间':crawl_time}
 		li_tag = bsObj.find('li')
-		href=li_tag.find('a').get('href')
+		href = li_tag.find('a').get('href')
 		doc_url = get_xls_url(url, href)
-		download2person_info(doc_url, person_info,extra=extra)
+		download2person_info(doc_url, person_info, extra=extra)
 	except Exception as e:
 		print('获取孔雀计划人才数据失败,原因:%s' % e)
 
@@ -116,30 +125,30 @@ def main():
 			url = url_prefix + "index.htm"
 		else:
 			url = url_prefix + "index_" + str(i) + ".htm"
-		print("从url：" + url + "获取所有详细信息地址，当前第%s页" % str(i+1))
-		url_arr = get_infourl(url,'.*孔雀计划.*批认定人选公示(通告|公告)')
+		print("从url：" + url + "获取所有详细信息地址，当前第%s页" % str(i + 1))
+		url_arr = get_infourl(url, '.*孔雀计划.*批认定人选公示(通告|公告)')
 		for url in url_arr:
 			get_info_data(url, peacock_plan)
 
 	for i in range(len(peacock_plan)):
-		data=peacock_plan[i]
-		temp_data={}
+		data = peacock_plan[i]
+		temp_data = {}
 		for key in data:
 			if re.search('序列|序号', key) is not None:
 				continue
 			elif re.search('姓名', key) is not None:
 				temp_data['姓名'] = data[key]
-			elif re.search('学历',key) is not None:
-				temp_data['学历']=data[key]
+			elif re.search('学历', key) is not None:
+				temp_data['学历'] = data[key]
 			elif re.search('单位', key) is not None:
-				temp_data['单位']=data[key]
-			elif  re.search('分类|认定级别', key) is not None:
-				temp_data['认定级别']=data[key]
+				temp_data['单位'] = data[key]
+			elif re.search('分类|认定级别', key) is not None:
+				temp_data['认定级别'] = data[key]
 			elif re.search('认定(依据|的标准)', key) is not None:
-				temp_data['认定标准']=data[key]
+				temp_data['认定标准'] = data[key]
 			else:
-				temp_data[key]=data[key]
-		peacock_plan[i]=temp_data
+				temp_data[key] = data[key]
+		peacock_plan[i] = temp_data
 	table1_df = DataFrame(peacock_plan)
 	table1_df.to_csv("D:\\011111111111111111111111\\00临时文件\\peacockPlan.csv", index=False, sep=',')
 	print(table1_df)
