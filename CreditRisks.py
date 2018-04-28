@@ -443,32 +443,28 @@ def write_error_url(f, error_url=[]):
 			file.write(url)
 
 
-# 入口函数
-def do_search():
+# 企业数据入口函数
+def do_search(main_url, page, all_url_file, error_url_file, writed_url_file, base_csv, info_csv):
 	headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)', 'Host': 'www.szcredit.org.cn',
 			   'Pragma': 'no-cache'
 		, 'Referer': 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx', 'Upgrade-Insecure-Requests': '1'
 		, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
 		, 'Accept-Language': 'zh-CN,zh;q=0.9'
 			   }
-	# 深圳信用网信用风险提示url
-	main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'
 	base_table = {'col0': [], 'col1': [], 'col2': [], 'col3': [], 'col4': [], 'col5': [], 'col6': [], 'col7': [],
 				  'col8': [], 'col9': [], '所属分类': [],
 				  '分组序号': [], '企业名称': [], '注册号': [],
 				  '统一社会信用代码': [],
-				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的基本信息数据
+				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': [],'爬取时间':[]}  # 存放抓取到的基本信息数据
 
 	info_table = {'col0': [], 'col1': [], 'col2': [], 'col3': [], 'col4': [], 'col5': [], 'col6': [], 'col7': [],
 				  'col8': [], 'col9': [], '所属分类': [],
 				  '分组序号': [], '企业名称': [], '注册号': [],
 				  '统一社会信用代码': [],
-				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': []}  # 存放抓取到的提示信息数据
+				  '机构代码': [], '社保单位编号': [], '更新时间': [], '备注': [],'爬取时间':[]}  # 存放抓取到的提示信息数据
 	delay = 15  # 间隔时间
-	url_arr = get_all_url_arr(main_url, f='d://all_url_arr.txt', page=139)  # 获取所有url
-	f = 'd://writed_url.txt'  # 保存已经处理的url
-	writed_url = get_writed_url(f)
-	error_url_file = 'd://error_url.txt'
+	url_arr = get_all_url_arr(main_url, f=all_url_file, page=page)  # 获取所有url
+	writed_url = get_writed_url(writed_url_file)
 	error_url = get_error_url(error_url_file)
 	print('开始进行数据获取')
 	for url in url_arr:
@@ -490,16 +486,57 @@ def do_search():
 			writed_url.append(url)
 			get_info(bsObj, base_table, info_table)  # 数据解析
 			time.sleep(delay)  # 间隔时间
-
+	crawl_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	for i in range(len(base_table['更新时间'])):
+		base_table['爬取时间'].append(crawl_time)
+	for i in range(len(info_table['更新时间'])):
+		info_table['爬取时间'].append(crawl_time)
 	base_table_df = DataFrame(base_table)
 	info_table_df = DataFrame(info_table)
-	base_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_base.csv", mode='a+', index=False, sep=',',
-						 header=False)  # 追加模式
-	info_table_df.to_csv("D:\\011111111111111111111111\\00临时文件\\creaditrisks_info.csv", mode='a+', index=False, sep=',',
-						 header=False)  # 追加模式
-	write_writed_url(f, writed_url)  # 写入已经处理的url
+	base_table_df.to_csv(base_csv, mode='a+', index=False, sep=',', header=False)  # 追加模式
+	info_table_df.to_csv(info_csv, mode='a+', index=False, sep=',', header=False)  # 追加模式
+	write_writed_url(writed_url_file, writed_url)  # 写入已经处理的url
 	write_error_url(error_url_file, error_url)  # 写入产生http错误的url
 
 
+# 企业信用风险数据
+def do_credit_risk_list():
+	main_url = 'https://www.szcredit.org.cn/web/GSPT/CreditRiskList.aspx'  # 深圳信用网信用风险提示url
+	all_url_file = 'd://all_url_arr.txt'
+	writed_url_file = 'd://writed_url.txt'  # 保存已经处理的url
+	error_url_file = 'd://error_url.txt'
+	page = 139
+	base_csv = "D:\\011111111111111111111111\\00临时文件\\creaditrisks_base.csv"
+	info_csv = "D:\\011111111111111111111111\\00临时文件\\creaditrisks_info.csv"
+	do_search(main_url=main_url, page=page, all_url_file=all_url_file, error_url_file=error_url_file,
+			  writed_url_file=writed_url_file, base_csv=base_csv, info_csv=info_csv)
+
+
+# 红名单企业数据
+def do_redlist_list():
+	main_url = 'https://www.szcredit.org.cn/web/GSPT/RedEntList.aspx'  # 深圳信用网信用风险提示url
+	all_url_file = 'd://redlist_all_url_arr.txt'
+	writed_url_file = 'd://redlist_writed_url.txt'  # 保存已经处理的url
+	error_url_file = 'd://redlist_error_url.txt'
+	page = 4
+	base_csv = "D:\\011111111111111111111111\\00临时文件\\redlist_base.csv"
+	info_csv = "D:\\011111111111111111111111\\00临时文件\\redlist_info.csv"
+	do_search(main_url=main_url, page=page, all_url_file=all_url_file, error_url_file=error_url_file,
+			  writed_url_file=writed_url_file, base_csv=base_csv, info_csv=info_csv)
+
+
+# 黑名单企业数据
+def do_black_list():
+	main_url = 'https://www.szcredit.org.cn/web/GSPT/BlackEntList.aspx'  # 深圳信用网信用风险提示url
+	all_url_file = 'd://blacklist_all_url_arr.txt'
+	writed_url_file = 'd://blacklist_writed_url.txt'  # 保存已经处理的url
+	error_url_file = 'd://blacklist_error_url.txt'
+	page = 2110
+	base_csv = "D:\\011111111111111111111111\\00临时文件\\blacklist_base.csv"
+	info_csv = "D:\\011111111111111111111111\\00临时文件\\blacklist_info.csv"
+	do_search(main_url=main_url, page=page, all_url_file=all_url_file, error_url_file=error_url_file,
+			  writed_url_file=writed_url_file, base_csv=base_csv, info_csv=info_csv)
+
+
 if __name__ == "__main__":
-	do_search()
+	do_black_list()
