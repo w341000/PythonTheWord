@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
-import pandas as pd
-from pandas import DataFrame, Series
-import re
 import csv
+import re
+from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
+from pandas import DataFrame
 
 
 # 获取土地交易信息数据
@@ -104,32 +104,67 @@ def createListCSV(fileName="", datadict={}):
 		csvFile.close()
 
 
-url_prefix = "http://www.sz68.com/land/?s="
-table_dict = {}
-for i in range(56):
-	url = url_prefix + str(i)
-	print("从url：" + url + "获取所有详细信息地址，当前第" + str(i + 1) + "页")
-	url_time_arr = get_infourl_and_time(url)
-	for url_time in url_time_arr:
-		get_land_info(url_time.get("href"), table_dict,url_time.get("time"))
+# 输入：文件名称，数据列表
+def createListCSV(fileName="", table_list=[],head=[]):
+	with open(fileName, "w", encoding='utf-8',newline='') as csvFile:
+		csvWriter = csv.writer(csvFile)
+
+		# 先写入标题
+		csvWriter.writerow(head)
+		for table in table_list:
+			data=[]
+			for field in head:
+				data.append(table[field])
+			csvWriter.writerow(data)
+		csvFile.close()
+
+
+
+#对土地交易中多个公司拍同个地进行处理
+def filter_land(readfile,writefile):
+	with open(readfile, newline='',
+			  encoding='utf-8') as csvfile:  # 此方法:当文件不用时会自动关闭文件
+		csvReader = csv.DictReader(csvfile)
+		reader = csv.reader(csvfile)
+		csvHead = csvReader.fieldnames
+		print(csvHead)
+		pattern = '(?<=公司)[,；\s 、/]'
+		strinfo = re.compile('(?<=公司)[\s]*(?=\()')
+		table_list=[]
+		for content in csvReader:
+			# print(content['JDR'])
+			content['竞得人'] = strinfo.sub('', content['竞得人'])
+			cominfos = re.split(pattern, content['竞得人'])
+			for comInfo in cominfos:
+			  newContent=content.copy()
+			  newContent["公司名称"]=comInfo
+			  table_list.append(newContent)
+			print(content['竞得人'] + "------切分后-------" + cominfos[0])
+		for content in table_list:
+			print(content["竞得人"]+" ---公司名称== "+content['公司名称'])
+		csvHead.append("公司名称")
+		createListCSV(writefile,table_list,csvHead)
+
+def main():
+	url_prefix = "http://www.sz68.com/land/?s="
+	table_dict = {}
+	for i in range(56):
+		url = url_prefix + str(i)
+		print("从url：" + url + "获取所有详细信息地址，当前第" + str(i + 1) + "页")
+		url_time_arr = get_infourl_and_time(url)
+		for url_time in url_time_arr:
+			get_land_info(url_time.get("href"), table_dict,url_time.get("time"))
+
+		table1_df = DataFrame(table_dict)
 
 	table1_df = DataFrame(table_dict)
+	land='D:\\011111111111111111111111\\00临时文件\\land.csv'
+	table1_df.to_csv(land, index=False, sep=',')
+	filter_land(land,land)
+	print(table1_df)
 
-table1_df = DataFrame(table_dict)
-table1_df.to_csv("D:\\011111111111111111111111\\00临时文件\\land.csv", index=False, sep=',')
-print(table1_df)
 
-# url = "http://www.sz68.com/land/025012340000005900/"
-# html = urlopen(url)
-# bsObj = BeautifulSoup(html, "html.parser")
-# trs = bsObj.find("main").find_all("div", {"class": "ym-g66 ym-gl"})[1].find("table").find("table").find_all("tr")
-# time = ""
-# for tr in trs:
-# 	if "竞买申请截止" in tr.get_text().strip():
-# 		time = tr.find("td").get_text().strip()
-# 	if "竞价开始" in tr.get_text().strip():
-# 		tempTime = tr.find("td").get_text().strip()
-# 		if "" != tempTime and tempTime is not None:
-# 			time = tempTime
-# 		break
-# print(time)
+if __name__ == "__main__":
+	#main()
+	land='D:\\011111111111111111111111\\00临时文件\\land.csv'
+	filter_land(land, land)

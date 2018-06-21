@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 # 爬虫工具类
+import csv
 import os
 import re
+import urllib
 from urllib.request import urlopen
 
 
-def open_url(url, self_rotation=5, timeout=5):
+def open_url(url, self_rotation=5, timeout=5,data = None ):
 	"""
 	打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
+	:param data: 携带参数,为字典对象如{k:v}
 	:param url: 要打开的url地址
 	:param self_rotation: 自旋次数
 	:param timeout: 超时时间
@@ -17,13 +20,16 @@ def open_url(url, self_rotation=5, timeout=5):
 	i = 0
 	while i < self_rotation:
 		try:
-			html = urlopen(url, timeout=timeout).read()
+			if data is not None:
+				data = bytes(urllib.parse.urlencode(data), encoding='utf8')
+			html = urlopen(url,data, timeout=timeout).read()
 			return html
 		except Exception as e:
 			print("从url发生连接错误,尝试重新获取连接:" + repr(e))
 			i += 1
 			continue
-	raise RuntimeError('尝试%d次连接失败,网络异常!' % self_rotation)
+	print('发生错误,url:'+url)
+	raise RuntimeError('尝试%d次连接失败,网络异常!' %self_rotation)
 
 
 def delete_file(f):
@@ -111,3 +117,47 @@ def chinese2digits(uchars_chinese):
 		else:
 			total = total + r * val
 	return total
+
+
+# csv文件转换为列表
+def readCSV2List(filePath):
+	"""
+	csv文件转换为列表信息
+	:param filePath:文件地址
+	:return:
+	"""
+	with open(filePath, newline='',
+			  encoding='utf-8') as csvfile:  # 此方法:当文件不用时会自动关闭文件
+		csvReader = csv.DictReader(csvfile)
+		reader = csv.reader(csvfile)
+		csvHead = csvReader.fieldnames
+		print(csvHead)
+		table_list = []
+		for content in csvReader:
+			data={}
+			for head in csvHead:
+				data[head]=content[head]
+			table_list.append(data)
+		return table_list,csvHead
+
+
+# 输入：文件名称，数据列表
+def createListCSV(path="", table_list=[],head=[]):
+	"""
+	列表转为csv文件
+	:param fileName: 文件名称
+	:param table_list: 列表数据
+	:param head: 表头信息
+	:return:
+	"""
+	with open(path, "w", encoding='utf-8',newline='') as csvFile:
+		csvWriter = csv.writer(csvFile)
+
+		# 先写入标题
+		csvWriter.writerow(head)
+		for table in table_list:
+			data=[]
+			for field in head:
+				data.append(table[field])
+			csvWriter.writerow(data)
+		csvFile.close()

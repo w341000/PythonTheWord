@@ -1,18 +1,10 @@
 # -*- coding: utf-8 -*-
 # -*- coding: utf-8 -*-：
-import os
 
 from docx import Document
 from pandas import DataFrame
 
 
-#删除文件
-def  delete_file(f):
-  if os.path.exists(f):
-    # 删除文件，可使用以下两种方法。
-    os.remove(f)
-  else:
-    pass
 #解析docx表格中的人才数据
 def parse_docx(f):
   info_arr={}
