@@ -165,6 +165,4 @@ def main():
 
 
 if __name__ == "__main__":
-	#main()
-	land='D:\\011111111111111111111111\\00临时文件\\land.csv'
-	filter_land(land, land)
+	main()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*
 import re
-
+from urllib import error
 from bs4 import BeautifulSoup
 from pandas import DataFrame
 
@@ -40,28 +40,46 @@ def getInfo(url,datas):
 	title=bsObj.find('title').get_text().strip()
 	time=bsObj.find('em').get_text().strip()
 	p_tags=bsObj.find('div',{'class':'TRS_Editor'}).find_all('p')
-	content=''
-	company=p_tags[0].get_text().strip()
-	for p_tag in p_tags[:-2]:
-		content=content+p_tag.get_text().strip()
+	thecontent=bsObj.get_text().strip()
+	content=re.search('var content = \".+\"',bsObj.get_text().strip())
+	content=content.group()
+	content=content[content.find('"')+1:content.rfind('"')]
+	content=content.replace('<br/>','')
+	content = content.replace('&nbsp;', '')
+	content=content.strip()
+	company=re.search('.+?：',content).group().strip()[:-1]
+	print(content)
 	data={}
-	company=company[:company.rfind(':')]
 	data['company']=company
 	data['time']=time
 	data['content']=content
+	money=0
+	arr=re.findall('(\d+\.?\d+元)', string=content)
+	for i in range(len(arr)):
+		money=money+float(arr[i][:-1])
 	data['title']=title
+	data['money']=money
+	data['source'] = '人力资源局'
+	data['type']='劳动仲裁'
 	datas.append(data)
 
 
 datas=[]
-for i in range(23):
+i=0
+while True:
 	if i==0:
 		url='http://www.szft.gov.cn/bmxx/qrlzyj/rl_zwdt/zwdt_tzgg/index.htm'
 	else:
 		url = 'http://www.szft.gov.cn/bmxx/qrlzyj/rl_zwdt/zwdt_tzgg/index_' + str(i) + '.htm'
-	url_arr=get_infourl(url,'深圳市福田区劳动人事争议仲裁委员会公告')
+	try:
+		url_arr=get_infourl(url,'深圳市福田区劳动人事争议仲裁委员会公告')
+	except error.HTTPError as e:
+		if e.code ==404:
+			print("爬取福田区劳动仲裁公告结束")
+			break
 	for info_url in  url_arr:
 		getInfo(info_url,datas)
+	i=i+1
 
 DataFrame(datas).to_csv("D:\\011111111111111111111111\\00临时文件\\laozi.csv",
 										index=False,

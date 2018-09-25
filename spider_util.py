@@ -5,7 +5,7 @@ import os
 import re
 import urllib
 from urllib.request import urlopen
-
+from urllib import error
 
 def open_url(url, self_rotation=5, timeout=5,data = None ):
 	"""
@@ -18,17 +18,25 @@ def open_url(url, self_rotation=5, timeout=5,data = None ):
 	:raise RuntimeError: 失败次数超过允许的自旋重试次数,则抛出此异常
 	"""
 	i = 0
+	if data is not None:
+		data = bytes(urllib.parse.urlencode(data), encoding='utf8')
 	while i < self_rotation:
 		try:
-			if data is not None:
-				data = bytes(urllib.parse.urlencode(data), encoding='utf8')
 			html = urlopen(url,data, timeout=timeout).read()
 			return html
+		except error.HTTPError as e:
+			if e.code==404:
+				print("服务器返回404错误,url:"+url)
+				raise e
+			else:
+				i+=1
+				continue
 		except Exception as e:
 			print("从url发生连接错误,尝试重新获取连接:" + repr(e))
 			i += 1
 			continue
 	print('发生错误,url:'+url)
+	print(data)
 	raise RuntimeError('尝试%d次连接失败,网络异常!' %self_rotation)
 
 
