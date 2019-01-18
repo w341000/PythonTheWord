@@ -2,9 +2,8 @@
 import xlrd
 from urllib.request import urlopen
 import win32com, re
-from win32com.client import Dispatch, constants
 import urllib
-import spider_util
+from util import spider_util
 from docx import Document
 
 

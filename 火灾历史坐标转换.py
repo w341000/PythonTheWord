@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
-from pandas import DataFrame
-import zb_zhuanhuan
-import spider_util
+from util import spider_util, coordinate_util
 import math
 import time
 
@@ -25,8 +22,8 @@ def change_zb(filename):
 				ABSY = float(ABSY)
 				if math.isnan(ABSX) or math.isnan(ABSY):#非数字跳过
 					continue
-				bdo9=zb_zhuanhuan.bd09togcj02(ABSX,ABSY)
-				wgs84=zb_zhuanhuan.gcj02towgs84(bdo9[0],bdo9[1])
+				bdo9= coordinate_util.bd09togcj02(ABSX, ABSY)
+				wgs84= coordinate_util.gcj02towgs84(bdo9[0], bdo9[1])
 				jd84=wgs84[0]
 				wd84=wgs84[1]
 				# print(jd84+'-----'+wd84)

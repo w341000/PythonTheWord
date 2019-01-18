@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import  spider_util
+from util import spider_util
 import bs4
 from bs4 import BeautifulSoup
 import json
@@ -22,7 +22,7 @@ for year in range(2017,2019):
 		url='http://wnl.52mlsz.com/wx/api/street/healthIndex'
 		time=str(year)+'-'+month
 		data={'evaluation_time':time,'area_id':1,'rows':200}
-		html=spider_util.open_url(url,data=data)
+		html= spider_util.open_url(url, data=data)
 		obj=json.loads(html)
 		list=obj['data']['list']
 		for dataItem in list:
@@ -39,7 +39,7 @@ for year in range(2017,2019):
 		url='http://wnl.52mlsz.com/wx/api/street/progressIndex'
 		time=str(year)+'-'+month
 		data={'evaluation_time':time,'area_id':1,'rows':200}
-		html=spider_util.open_url(url,data=data)
+		html= spider_util.open_url(url, data=data)
 		obj=json.loads(html)
 		list=obj['data']['list']
 		for dataItem in list:

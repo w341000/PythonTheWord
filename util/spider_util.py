@@ -6,8 +6,11 @@ import re
 import urllib
 from urllib.request import urlopen
 from urllib import error
+from bs4 import BeautifulSoup
+import numpy as np
 
-def open_url(url, self_rotation=5, timeout=5,data = None ):
+
+def open_url(url, self_rotation=5, timeout=5, data=None,header={}) -> BeautifulSoup:
 	"""
 	打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
 	:param data: 携带参数,为字典对象如{k:v}
@@ -22,22 +25,42 @@ def open_url(url, self_rotation=5, timeout=5,data = None ):
 		data = bytes(urllib.parse.urlencode(data), encoding='utf8')
 	while i < self_rotation:
 		try:
-			html = urlopen(url,data, timeout=timeout).read()
+			request=urllib.request.Request(url,data,header)
+			html = urlopen(request, timeout=timeout).read()
 			return html
 		except error.HTTPError as e:
-			if e.code==404:
-				print("服务器返回404错误,url:"+url)
+			if e.code == 500:
+				print("服务器返回500错误,url:" + url)
+				raise e
+			if e.code == 404:
+				print("服务器返回404错误,url:" + url)
 				raise e
 			else:
-				i+=1
+				i += 1
 				continue
 		except Exception as e:
 			print("从url发生连接错误,尝试重新获取连接:" + repr(e))
 			i += 1
 			continue
-	print('发生错误,url:'+url)
+	print('发生错误,url:' + url)
 	print(data)
-	raise RuntimeError('尝试%d次连接失败,网络异常!' %self_rotation)
+	raise RuntimeError('尝试%d次连接失败,网络异常!' % self_rotation)
+
+
+def open_url_return_bsobj(url, self_rotation=5, timeout=5, data=None):
+	"""
+	打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常，返回BeautifulSoup文档对象，
+	该方法相当于直接调用open_url并调用BeautifulSoup(data, "html.parser", from_encoding="utf-8")
+	:param data: 携带参数,为字典对象如{k:v}
+	:param url: 要打开的url地址
+	:param self_rotation: 自旋次数
+	:param timeout: 超时时间
+	:return: BeautifulSoup文档对象
+	:raise RuntimeError: 失败次数超过允许的自旋重试次数,则抛出此异常
+	"""
+	data = open_url(url, self_rotation=5, timeout=5, data=None)
+	bsObj = BeautifulSoup(data, "html.parser", from_encoding="utf-8")
+	return bsObj
 
 
 def delete_file(f):
@@ -99,6 +122,7 @@ def get_docurl(cur_url, href):
 	url = url_prefix + href
 	return url
 
+
 def chinese2digits(uchars_chinese):
 	"""
 	中文数字转换为阿拉伯数字
@@ -128,29 +152,29 @@ def chinese2digits(uchars_chinese):
 
 
 # csv文件转换为列表
-def readCSV2List(filePath):
+def readCSV2List(filePath, encoding='utf-8'):
 	"""
-	csv文件转换为列表信息
+	csv文件转换为列表信息,返回包含列表及标题的元组
+	table_list中以列表形式保存csv文件的值
 	:param filePath:文件地址
-	:return:
+	:return:(table_list, csvHead)
 	"""
-	with open(filePath, newline='',
-			  encoding='utf-8') as csvfile:  # 此方法:当文件不用时会自动关闭文件
+	with open(filePath, newline='', encoding=encoding) as csvfile:  # 此方法:当文件不用时会自动关闭文件
 		csvReader = csv.DictReader(csvfile)
 		reader = csv.reader(csvfile)
 		csvHead = csvReader.fieldnames
 		print(csvHead)
 		table_list = []
 		for content in csvReader:
-			data={}
+			data = {}
 			for head in csvHead:
-				data[head]=content[head]
+				data[head] = content[head]
 			table_list.append(data)
-		return table_list,csvHead
+		return table_list, csvHead
 
 
 # 输入：文件名称，数据列表
-def createListCSV(path="", table_list=[],head=[]):
+def createListCSV(path="", table_list=[], head=[]):
 	"""
 	列表转为csv文件
 	:param fileName: 文件名称
@@ -158,14 +182,29 @@ def createListCSV(path="", table_list=[],head=[]):
 	:param head: 表头信息
 	:return:
 	"""
-	with open(path, "w", encoding='utf-8',newline='') as csvFile:
+	with open(path, "w", encoding='utf-8', newline='') as csvFile:
 		csvWriter = csv.writer(csvFile)
 
 		# 先写入标题
 		csvWriter.writerow(head)
 		for table in table_list:
-			data=[]
+			data = []
 			for field in head:
 				data.append(table[field])
 			csvWriter.writerow(data)
 		csvFile.close()
+
+
+def log_progress(i: int, length: int, start_from_zero=True):
+	"""
+	日志打印记录当前进度
+	:param i: 当前位置 应大于1
+	:param length: 总长度
+	:param start_from_zero: 值是否从0开始  True:  计算进度时，i和length将会+1再做计算 False:不做修改
+	:return:
+	"""
+	np.set_printoptions(suppress=True)
+	if start_from_zero:
+		i += 1
+	progress = round(i / length, 5) * 100
+	print('已完成进度：%.5f%%' % progress)

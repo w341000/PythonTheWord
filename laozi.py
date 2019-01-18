@@ -3,9 +3,10 @@ import re
 from urllib import error
 from bs4 import BeautifulSoup
 from pandas import DataFrame
-
-import spider_util
-
+import os
+from os import path
+from util import spider_util
+import time
 
 #爬取劳资纠纷公告信息
 
@@ -63,24 +64,30 @@ def getInfo(url,datas):
 	data['type']='劳动仲裁'
 	datas.append(data)
 
+def main():
+	datas=[]
+	i=0
+	while True:
+		if i==0:
+			url='http://www.szft.gov.cn/bmxx/qrlzyj/rl_zwdt/zwdt_tzgg/index.htm'
+		else:
+			url = 'http://www.szft.gov.cn/bmxx/qrlzyj/rl_zwdt/zwdt_tzgg/index_' + str(i) + '.htm'
+		try:
+			url_arr=get_infourl(url,'深圳市福田区劳动人事争议仲裁委员会公告')
+		except error.HTTPError as e:
+			if e.code ==404:
+				print("爬取福田区劳动仲裁公告结束")
+				break
+		for info_url in  url_arr:
+			getInfo(info_url,datas)
+		i=i+1
+	directory='D:\\011111111111111111111111\\00临时文件'
+	if not path.exists(directory):
+		os.makedirs(directory)
+	now=time.strftime('%Y-%m-%d')
+	filename='laizi'+now+'.csv'
+	DataFrame(datas).to_csv(path.join(directory,filename),index=False,sep=',')
 
-datas=[]
-i=0
-while True:
-	if i==0:
-		url='http://www.szft.gov.cn/bmxx/qrlzyj/rl_zwdt/zwdt_tzgg/index.htm'
-	else:
-		url = 'http://www.szft.gov.cn/bmxx/qrlzyj/rl_zwdt/zwdt_tzgg/index_' + str(i) + '.htm'
-	try:
-		url_arr=get_infourl(url,'深圳市福田区劳动人事争议仲裁委员会公告')
-	except error.HTTPError as e:
-		if e.code ==404:
-			print("爬取福田区劳动仲裁公告结束")
-			break
-	for info_url in  url_arr:
-		getInfo(info_url,datas)
-	i=i+1
 
-DataFrame(datas).to_csv("D:\\011111111111111111111111\\00临时文件\\laozi.csv",
-										index=False,
-										sep=',')
+if __name__ =='__main__':
+	main()

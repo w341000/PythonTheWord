@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
-import spider_util
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
-import pandas as pd
-from pandas import DataFrame, Series
-import math
+from util import spider_util
+from pandas import DataFrame
 import json
-import  urllib
-import numpy as np
+
 datas=[]
 metadatas=[]
 metadatas.append({'url':'http://10.190.65.123:6080/arcgis/rest/services/FTKSJ/ggss_futian_201803_01/MapServer/88/query?where=1%3D1&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&f=pjson','type':'综合医院'})
@@ -26,7 +21,7 @@ for metadata in metadatas:
 	url=metadata['url']
 	type=metadata['type']
 	url = 'http://10.190.65.123:6080/arcgis/rest/services/FTKSJ/ggss_futian_201803_01/MapServer/88/query?where=1%3D1&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&f=pjson'
-	html = spider_util.open_url(url,data=None)
+	html = spider_util.open_url(url, data=None)
 	objlist = json.loads(html)['features']
 	for data in objlist:
 		obj=data['attributes']

@@ -8,7 +8,7 @@ import xlrd
 from bs4 import BeautifulSoup
 from pandas import DataFrame
 
-import spider_util
+from util import spider_util
 
 
 def get_infourl(url, pattern):

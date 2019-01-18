@@ -34,6 +34,7 @@ def getTableCount(row):
 #获取cursor
 df=pandas.read_sql_query(sql, oracle_db)
 df.apply(getTableCount,axis =1)
+DataFrame(table_count).to_excel()
 DataFrame(table_count).to_csv("D:\\011111111111111111111111\\00临时文件\\table_count.csv",
 										index=False,
 										sep=',')

@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
-from pandas import DataFrame
-import zb_zhuanhuan
-import spider_util
+from util import spider_util, coordinate_util
 import math
 import time
 
@@ -37,10 +34,10 @@ def change_zb(filename):
 				lat = float(zb_arr[1])
 				df.set_value(x, '84_x', lon)
 				df.set_value(x, '84_y', lat)
-				gcj02=zb_zhuanhuan.wgs84togcj02(lon,lat)#84坐标转火星坐标
+				gcj02= coordinate_util.wgs84togcj02(lon, lat)#84坐标转火星坐标
 				df.set_value(x, 'gd_x', gcj02[0])
 				df.set_value(x, 'gd_y', gcj02[1])
-				bd09=zb_zhuanhuan.gcj02tobd09(gcj02[0],gcj02[1])#火星坐标转百度坐标
+				bd09= coordinate_util.gcj02tobd09(gcj02[0], gcj02[1])#火星坐标转百度坐标
 				df.set_value(x, 'bd_x', bd09[0])
 				df.set_value(x, 'bd_y', bd09[1])
 				# print(jd84+'-----'+wd84)

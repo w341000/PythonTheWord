@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 from pandas import DataFrame
 
-import spider_util
+from util import spider_util
 
 #获取学校学区信息
 xx_url='http://map.28dat.net/s_ft/school.aspx?no=101'

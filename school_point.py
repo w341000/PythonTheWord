@@ -6,7 +6,7 @@ from urllib import parse
 
 from pandas import DataFrame
 
-import spider_util
+from util import spider_util
 
 
 def readCSV2List(filePath):
@@ -50,7 +50,7 @@ for school in datas:
 		url='http://10.190.65.123:6080/arcgis/rest/services/FTKSJ/ggss_futian_201803_01/MapServer/103/query'
 	#req = request.Request(url=url,data=data)
 	data = urllib.parse.urlencode(data).encode('utf-8')
-	html=spider_util.open_url(url,data=data)
+	html= spider_util.open_url(url, data=data)
 	result = json.loads(html)
 	features=result['features']
 	if features is not None and len(features)>0:

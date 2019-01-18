@@ -1,13 +1,5 @@
 # -*- coding: utf-8 -*-
-import spider_util
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
 import pandas as pd
-from pandas import DataFrame, Series
-import math
-import json
-import  urllib
-import numpy as np
 import datetime
 def formatDate(row):
 	timestr=row['月份']

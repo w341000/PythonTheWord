@@ -5,11 +5,14 @@ from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
 from pandas import DataFrame
-
+import os
+import datetime
+from util import spider_util
+import time
 
 # 获取土地交易信息数据
 def get_land_info(url, table1_dict,time):
-	html = urlopen(url)
+	html = spider_util.open_url(url)
 	bsObj = BeautifulSoup(html, "html.parser")
 	grids = bsObj.find("main").find_all("div", {"class": "ym-g33 ym-gr"})[1].find_all("div", {"class": "ym-grid"})
 	# 正则过滤标题土地编号
@@ -145,10 +148,24 @@ def filter_land(readfile,writefile):
 		csvHead.append("公司名称")
 		createListCSV(writefile,table_list,csvHead)
 
+
+def getTotalPage():
+	"""
+	获取总页数
+	:return:
+	"""
+	html = spider_util.open_url('http://www.sz68.com/land/')
+	bsObj = BeautifulSoup(html, "html.parser")
+	litag=bsObj.select('#wp_page_numbers li')[-3]
+	totalpage=litag.get_text()
+	return int(totalpage)
+
+
 def main():
 	url_prefix = "http://www.sz68.com/land/?s="
+	totalpage=getTotalPage()
 	table_dict = {}
-	for i in range(56):
+	for i in range(totalpage):
 		url = url_prefix + str(i)
 		print("从url：" + url + "获取所有详细信息地址，当前第" + str(i + 1) + "页")
 		url_time_arr = get_infourl_and_time(url)
@@ -158,7 +175,13 @@ def main():
 		table1_df = DataFrame(table_dict)
 
 	table1_df = DataFrame(table_dict)
-	land='D:\\011111111111111111111111\\00临时文件\\land.csv'
+	now = time.strftime('%Y-%m-%d')
+	filename='landinfo_'+now+'.csv'
+	directory='D:\\011111111111111111111111\\00临时文件'
+	if not os.path.exists(directory):
+		os.makedirs(directory)
+	path=os.path.join(directory,filename)
+	land=path
 	table1_df.to_csv(land, index=False, sep=',')
 	filter_land(land,land)
 	print(table1_df)

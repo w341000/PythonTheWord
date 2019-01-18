@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 from pandas import DataFrame
 
-import spider_util
+from util import spider_util
 
 url='http://10.190.62.57/geostar/440304_schooldistrict/wfs?VERSION=1.0.0&SERVICE=WFS&REQUEST=GetFeature&RESULTTYPE=result&OUTPUTFORMAT=XML'
 html = spider_util.open_url(url, self_rotation=5, timeout=20)  # 20秒超时

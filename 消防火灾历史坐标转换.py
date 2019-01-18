@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import spider_util
+from util import spider_util
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -22,7 +22,7 @@ with open(filename, "r", encoding='utf-8',newline='') as file:
 			continue
 		try:
 			url = 'http://10.190.62.81/EarthService/services/address/matchAddress?address='+urllib.parse.quote(addr)+'&max=1&_type=json&user=yongtai&token=yongtai_address'
-			html = spider_util.open_url(url,data=None)
+			html = spider_util.open_url(url, data=None)
 			addrObj = json.loads(html)['address'][0]
 			STREET=addrObj['street'];
 			COMMUNITY = addrObj['community'];
