@@ -13,7 +13,7 @@ import json
 import numpy as np
 from util import db_util
 import os
-
+import sqlalchemy
 
 def request_area_building():
 	"""
@@ -25,14 +25,23 @@ def request_area_building():
 		area_data = DataFrame(pd.read_excel(file))
 		if area_data is not None or not area_data.empty:
 			return area_data
-	areas = DataFrame(pd.read_excel('D:\\pypy\\pythonresult\\教育学位\\学区信息.xls'))
+	areas = db_util.execute2Dataframe('SELECT\
+				WWYJFX.T_JY_SCHOOLAREA.SCHOOLNAME,\
+				WWYJFX.T_JY_SCHOOLAREA.SCHOOL_FULLNAME,\
+				WWYJFX.T_JY_SCHOOLAREA.SCHOOLTYPE,\
+				WWYJFX.T_JY_SCHOOLAREA.POLYGON_84\
+				FROM\
+				WWYJFX.T_JY_SCHOOLAREA\
+			')
+	# areas = DataFrame(pd.read_excel('D:\\pypy\\pythonresult\\教育学位\\学区信息.xls'))
 	data = {'f': 'json', 'returnGeometry': 'false', 'spatialRel': 'esriSpatialRelIntersects',
 			'geometryType': 'esriGeometryPolygon', 'inSR': 4490, 'outFields': 'BLDG_NO,NOWNAME', 'outSR': 4490}
 	url_prefox = 'http://10.190.55.55:8080/arcgis/rest/services/FTKSJ/JZWDLM_CGCS2000/MapServer/1/query'
 	person_data = DataFrame()
 	for index, row in areas.iterrows():
-		polygon_84 = row['polygon_84']
-		schoolname = row['name']
+		polygon_84 = row['POLYGON_84']
+		schoolname = row['SCHOOLNAME']
+		schooltype = row['SCHOOLTYPE']
 		if polygon_84 is not None and polygon_84 is not '' and polygon_84 is not np.nan:
 			geometry = split_point_to_geometry(polygon_84)
 			data['geometry'] = geometry
@@ -42,7 +51,7 @@ def request_area_building():
 			if buildings is None or len(buildings) == 0:
 				print('该学校：' + schoolname + '楼栋id为空')
 				continue
-			childinfo = request_area_personcont(schoolname, buildings)
+			childinfo = request_area_personcont(schoolname, schooltype, buildings)
 			person_data = person_data.append(childinfo)
 	df = DataFrame(person_data)
 	df.to_excel(file, index=False)
@@ -58,39 +67,42 @@ def get_building(jsondata):
 	return buildings
 
 
-def request_area_personcont(school: str, buildings: []):
-	result = None
+def request_area_personcont(school: str, schooltype: str, buildings: []):
 	num = int(len(buildings) / 999) + 1
 	split_buildings = np.array_split(buildings, num)
+	hrjk_dict = {}
+	ldrk_dict = {}
+	hrjk_list=[]
+	ldrk_list = []
 	for split_building in split_buildings:
 		try:
-			hjrk_sql = "SELECT age,sum(num) NUM,RKXZ FROM FT_RKJZT WHERE lddm IN(%s) AND age <18 AND AGE >=0 and rkxz='深圳户籍人口'  GROUP BY AGE,RKXZ"
-			ldrk_sql = "SELECT age,sum(num) NUM,RKXZ FROM FT_RKJZT WHERE lddm IN(%s) AND age <18 AND AGE >=0 and rkxz='流动人口'  GROUP BY AGE,RKXZ"
-			# url='http://localhost:8080/ftidss/edu/getAgeJZTbyByildings.do'
-			# header={'Cookie': 'shiro.session.id=8d73795b-2ce6-495b-ae2e-1ef6cd9c39df','Content-Type':'application/json;charset=UTF-8'}
-			# data={'buildingIds':buildings}
-			# request = urllib.request.Request(url, json.dumps(data).encode('utf-8'), header)
-			# jsondata = demjson.decode(urlopen(request, timeout=10).read())
-			# result=jsondata['result']
-			# for item in result:
-			# 	item['school']=school
+			hjrk_sql = "SELECT age,sum(num) NUM,RKXZ FROM FT_RKJZT WHERE lddm IN(%s) AND age <18 AND AGE >=0 AND rkxz='深圳户籍人口'  GROUP BY AGE,RKXZ"
+			ldrk_sql = "SELECT age,sum(num) NUM,RKXZ FROM FT_RKJZT WHERE lddm IN(%s) AND age <18 AND AGE >=0 AND rkxz='流动人口'  GROUP BY AGE,RKXZ"
 			in_p = ', '.join(list(map(lambda x: "'%s'" % x, split_building)))
 			hjrk_sql = hjrk_sql % in_p
 			ldrk_sql = ldrk_sql % in_p
 			hrjk_df = db_util.execute2Dataframe(hjrk_sql)
 			ldrk_df = db_util.execute2Dataframe(ldrk_sql)
-			if result is not None:
-				result = hrjk_df.add(result, fill_value=0)
-			else:
-				result = hrjk_df
-			if result is not None:
-				result = ldrk_df.add(result, fill_value=0)
-			else:
-				result = ldrk_df
+			for index,row in hrjk_df.iterrows():
+				age=row['AGE']
+				num=row['NUM']
+				if not hrjk_dict.get(age):
+					hrjk_dict[age]=0
+				hrjk_dict[age]=hrjk_dict[age]+num
+			for index,row in ldrk_df.iterrows():
+				age=row['AGE']
+				num=row['NUM']
+				if not ldrk_dict.get(age):
+					ldrk_dict[age]=0
+				ldrk_dict[age] = ldrk_dict[age] + num
 		except Exception as e:
 			print(e)
-	result['SCHOOLNAME'] = school
-	return result
+	for age in hrjk_dict:
+		hrjk_list.append({'AGE':age,'NUM':hrjk_dict[age],'RKXZ':'深圳户籍人口','SCHOOLNAME':school,'SCHOOLTYPE':schooltype})
+	for age in ldrk_dict:
+		ldrk_list.append({'AGE':age,'NUM':ldrk_dict[age],'RKXZ':'流动人口','SCHOOLNAME':school,'SCHOOLTYPE':schooltype})
+	hrjk_list.extend(ldrk_list)
+	return DataFrame(hrjk_list)
 
 
 def split_point_to_geometry(polygon_84: str):

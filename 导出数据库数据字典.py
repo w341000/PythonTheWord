@@ -9,54 +9,28 @@ now_time = datetime.datetime.now()
 now_date = now_time.strftime('%Y-%m-%d')
 table_count = []
 os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
-sql = 'select a.table_name 表,a.column_name 字段,a.comments 字段中文名称,b.comments as 表中文名称 from user_col_comments a join  user_tab_comments  b on a.table_name=b.table_name  where a.table_name in (select table_name from user_tables)'
+sql = 'SELECT a.table_name 表,a.column_name 字段,a.comments 字段中文名称,b.comments AS 表中文名称 FROM user_col_comments a JOIN  user_tab_comments  b ON a.table_name=b.table_name  WHERE a.table_name IN (SELECT table_name FROM user_tables)'
 # oracle_db = create_engine('oracle+cx_oracle://wwyjfx:Fxyj#17W*2w@10.190.41.13:1521/?service_name=coreora')
 oracle_db = create_engine('oracle+cx_oracle://wwyjfx:m123@localhost:1521/?service_name=orcl')
 
-
-def getTableCount(row):
-	try:
-		table = row['表']
-		field = row['字段']
-		f_cn = row['字段中文名称']
-		t_cn = row['表中文名称']
-		f_count = None
-		total = None
-		percent = None
-		total = pandas.read_sql_query('select count(*) from ' + table, oracle_db).ix[[0]].values[0][0]
-		f_count = pandas.read_sql_query('select count(' + field + ') from ' + table, oracle_db).ix[[0]].values[0][0]
-		percent = f_count / total
-		if math.isnan(percent):
-			pass
-		else:
-			percent = str(percent * 100) + '%'
-	except Exception as e:
-		print("发生异常信息:" + repr(e) + ' ,当前表:' + table + ',当前字段:' + field)
-	field_obj = {'表': table, '字段': field, '字段中文名称': f_cn, '表中文名称': t_cn, '字段数据量': f_count, '总数据量': total,
-				 '所占比例': percent}
-	table_count.append(field_obj)
-
-
-table_info = {}
-filed_info = {}
-# 获取cursor
-print('------------start-----------------')
+table_info = {}  # {'T_YW_ZZ_LD':'三小场所应用-楼栋信息列表接口'}
+filed_info = {}  # {'T_YW_ZZ_LD':{'ID':'数据记录id','LDBM':'楼栋编码'}}
 
 
 def get_table_comment():
 	"""
-	获取所有表及字段注释
+	获取所有表及字段元数据信息 包含表中文名称，表英文名称，字段中文名称，字段英文名称
 	:return:
 	"""
 	df = pandas.read_sql_query(sql, oracle_db)
 	for index, row in df.iterrows():
 		table = row['表']
-		table_info[table] = row['表中文名称']  # 放入表注释信息
+		table_info[table] = row['表中文名称']  # 放入表中文名称及表英文名称
 		fileds = filed_info.get(table)
 		if not fileds:
 			fileds = {}
 			filed_info[table] = fileds
-		fileds[row['字段']] = row['字段中文名称']  # 放入字段注释
+		fileds[row['字段']] = row['字段中文名称']  # 放入字段中文名称及字段英文名称
 
 
 def get_table_count():
@@ -70,7 +44,6 @@ def get_table_count():
 		try:
 			table_count = total = pandas.read_sql_query('select count(*) from ' + table, oracle_db).ix[[0]].values[0][0]
 			this_filed_info = filed_info[table]
-			sql = 'select '
 			sql_field = ''
 			for field in this_filed_info.keys():
 				sql_field = sql_field + 'count(' + field + ') ' + field + ','
@@ -78,31 +51,86 @@ def get_table_count():
 			sql_field = sql_field[:-1]
 			sql = 'select ' + sql_field + ' from ' + table
 			df = pandas.read_sql_query(sql, oracle_db)
+			sample_dataframe = get_sample_dataframe(table)  # 获取一行样例数据
+			not_empty_sample_dataframe = try_get_not_empty_sample_dataframe(table)  # 取非空样例数据
 			for field in this_filed_info.keys():
 				data_item = {}
 				f_count = df.get_value(0, field.lower())
 				data_item['数据表'] = table
-				data_item['表注释'] = table_info[table]
-				data_item['字段'] = field
-				data_item['字段注释'] = this_filed_info[field]
+				data_item['数据表中文名称'] = table_info[table]
+				data_item['字段编码'] = field
+				data_item['字段中文'] = this_filed_info[field]
 				percent = None
-				percent = f_count / total
-				if math.isnan(percent):
-					pass
-				else:
-					percent = str(percent * 100) + '%'
+				if total is not 0:
+					percent = f_count / total
+					if math.isnan(percent):
+						pass
+					else:
+						percent = str(round(percent * 100, 2)) + '%'
 				data_item['总数据量'] = table_count
-				data_item['字段数据量'] = str(f_count)
-				data_item['所占比例'] = percent
+				data_item['字段非空数据量'] = str(f_count)
+				data_item['字段非空所占比例'] = percent
+				sample_data = None  # 样例数据
+				if not sample_dataframe.empty:
+					sample_data = sample_dataframe.at[0, field.lower()]
+				data_item['样例数据一'] = sample_data
+				not_empty_sample_data = None  # 非空样例数据
+				if not not_empty_sample_dataframe.empty:
+					not_empty_sample_data = not_empty_sample_dataframe.at[0, field.lower()]
+				data_item['非空样例数据'] = not_empty_sample_data
 				data.append(data_item)
 		except Exception as e:
-			print("发生异常信息:" + str(e) + ' ,当前表:' + table + ',当前字段:' + field)
+
+			print("发生异常信息:" + repr(e) + ' ,当前表:' + table + ',当前字段:' + field)
 		print('完成表：' + table + ',' + str(round((idx + 1) / len(keys) * 100, 2)) + '%')
 	return data
 
 
-columns = ['字段', '字段注释', '字段数据量', '总数据量', '所占比例', '数据表', '表注释']
-get_table_comment()
-data = get_table_count()
-DataFrame(data).to_excel("D:\\pythonresult\\数据字典" + now_date + ".xls", columns=columns, index=False)
-print('--------------end----------------')
+def get_sample_dataframe(table: str):
+	"""
+	获取前几行样例数据
+	:param table:
+	:return:
+	"""
+	sql = '(select a.*,ROWNUM RN from ' + table + ' a)'
+	outer_sql = 'select * from ' + sql + ' where RN<=3'
+	sample_dataframe = pandas.read_sql_query(outer_sql, oracle_db)  # .ix[[0]].values[0][0]
+	# print(sample_dataframe.get_value(0,'address'))
+	return sample_dataframe
+
+
+def try_get_not_empty_sample_dataframe(table: str):
+	"""
+	尝试获取该表中该字段的非空值作为样例数据
+	:param table: 
+	:param field: 
+	:return: 
+	"""
+	keys = filed_info[table].keys()
+	innersql = 'select '
+	for field in keys:
+		innersql = innersql + ' max(' + field + ') ' + field + ' ,'
+	innersql = innersql[:-1]
+	innersql = innersql + ' from ' + table
+	sample_dataframe = pandas.read_sql_query(innersql, oracle_db)
+	return sample_dataframe
+
+
+def main():
+	# 获取cursor
+	print('------------start-----------------')
+
+	columns = ['字段编码', '字段中文', '字段非空数据量', '总数据量', '字段非空所占比例', '数据表', '数据表中文名称', '样例数据一', '非空样例数据']
+	get_table_comment()
+	data = get_table_count()
+	directory = 'D:\\pythonresult\\'
+	if not os.path.exists(directory):
+		os.makedirs(directory)
+	DataFrame(data).to_excel(os.path.join(directory, "数据字典" + now_date + ".xls"), columns=columns, index=False)
+	print('--------------end----------------')
+
+
+if __name__ == '__main__':
+	main()
+# get_table_comment()
+# try_get_not_empty_sample_dataframe('OPENDATA_ZCBZF_XQJBXX')

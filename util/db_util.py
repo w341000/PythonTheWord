@@ -23,6 +23,14 @@ def execute2Dataframe(sql:str):
 	for filed in col:
 		columns.append(filed[0])
 	df = pd.DataFrame(rs, columns=columns)
+	db.close()
 	return df
+
+
+def delete(sql):
+	connectObj = cx_Oracle.connect('WWYJFX', 'm123', 'localhost:1521/orcl')
+	cr = connectObj.cursor()
+	cr.execute(sql)
+	connectObj.commit()
 
 
