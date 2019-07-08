@@ -48,7 +48,7 @@ def getInfo(url,datas):
 	content=content.replace('<br/>','')
 	content = content.replace('&nbsp;', '')
 	content=content.strip()
-	company=re.search('.+?：',content).group().strip()[:-1]
+	company=re.search('.+?[：:]',content).group().strip()[:-1]
 	print(content)
 	data={}
 	data['company']=company
@@ -85,8 +85,8 @@ def main():
 	if not path.exists(directory):
 		os.makedirs(directory)
 	now=time.strftime('%Y-%m-%d')
-	filename='laizi'+now+'.csv'
-	DataFrame(datas).to_csv(path.join(directory,filename),index=False,sep=',')
+	filename='laizi'+now+'.xlsx'
+	DataFrame(datas).to_excel(path.join(directory,filename),index=False)
 
 
 if __name__ =='__main__':

@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 from util import spider_util,coordinate_util
 import json
-
+import time
 
 def address2location(address='', city='深圳市', ret_coordtype='bd09ll', ak='Exhb17fjBe4YoCCERO0mAkRsnTXDRpzN'):
+
 	"""
 	地址解析为百度经纬度坐标信息
 	:param address: 需要被解析的地址
 	:param city: 地址所在城市，默认深圳市
-	:param ret_coordtype: 坐标系，默认bd09mc（百度墨卡托坐标），可选gcj02ll（国测局坐标）
+	:param ret_coordtype: 坐标系，默认bd09ll（百度经纬度坐标），可选gcj02ll（国测局坐标）
 	:param sn:百度校验码
 	:return:
 	"""
+	time.sleep(0.00625)
 	url = 'http://api.map.baidu.com/geocoder/v2/'
 	params = {'address': address, 'output': 'json', 'city': city, 'ret_coordtype': ret_coordtype,
 			  'ak': ak}
@@ -38,7 +40,7 @@ def location2normaladdress(lng, lat, coordtype='bd09ll', ret_coordtype='bd09ll',
 
 	:param ret_coordtype: 返回的坐标类型:
 
-	 gcj02ll（国测局坐标）、默认bd09mc（百度墨卡托坐标）
+	 gcj02ll（国测局坐标）、默认bd09ll（百度经纬度坐标）
 
 	:param ak: 百度校验码
 	:return: 返回addressComponent字典，包含以下信息
@@ -74,6 +76,7 @@ def location2normaladdress(lng, lat, coordtype='bd09ll', ret_coordtype='bd09ll',
 
 	formatted_address 格式化后的地址
 	"""
+	time.sleep(0.00625)
 	url = 'http://api.map.baidu.com/geocoder/v2/'
 	params = {'location': str(lat) + ',' + str(lng), 'output': 'json', 'ret_coordtype': ret_coordtype,
 			  'ak': ak, 'coordtype': coordtype, 'extensions_town': 'true', 'latest_admin': '1',

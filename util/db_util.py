@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import cx_Oracle
-
-
-user='WWYJFX'
-password='m123'
-url='localhost:1521/orcl'
+from sqlalchemy import create_engine
+from pandas import DataFrame
+user='lhdm'
+password='lhdm#gov'
+url='10.169.11.13:1521/orcl'
 
 
 def execute2Dataframe(sql:str):
@@ -14,7 +14,8 @@ def execute2Dataframe(sql:str):
 	:param sql: 
 	:return: 
 	"""
-	db=cx_Oracle.connect('WWYJFX','m123','localhost:1521/orcl')
+	# return pd.read_sql(sql,getSqlalchemyEngine())
+	db=cx_Oracle.connect(user,password,url)
 	cr = db.cursor()
 	cr.execute(sql)
 	rs = cr.fetchall()
@@ -28,9 +29,18 @@ def execute2Dataframe(sql:str):
 
 
 def delete(sql):
-	connectObj = cx_Oracle.connect('WWYJFX', 'm123', 'localhost:1521/orcl')
+	connectObj = cx_Oracle.connect(user, password, url)
 	cr = connectObj.cursor()
 	cr.execute(sql)
 	connectObj.commit()
+
+
+def getSqlalchemyEngine(url='oracle+cx_oracle://lhdm:lhdm#gov@10.169.11.13:1521/?service_name=orcL'):
+	"""
+	:param url: like 'oracle+cx_oracle://lhdm:lhdm#gov@10.169.11.13:1521/?service_name=orcl'
+	:return:
+	"""
+	return create_engine(url)
+
 
 

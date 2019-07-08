@@ -10,8 +10,8 @@ bsObj = BeautifulSoup(html,  "lxml-xml", from_encoding="utf-8")
 features=bsObj.find_all('gml:featureMember')
 schoolarea=[]
 for feature in features:
-	school=None;
-	schoolType=2;
+	school=None
+	schoolType=2
 	school=feature.find('MIDDLESCHOOL')
 	if school is None:
 		school = feature.find('PRIMARYSCHOOL')

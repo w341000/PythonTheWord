@@ -8,11 +8,14 @@ from urllib.request import urlopen
 from urllib import error
 from bs4 import BeautifulSoup
 import numpy as np
+import socket
+from urllib import request
 
 
-def open_url(url, self_rotation=5, timeout=5, data=None,header={}) -> BeautifulSoup:
+def open_url(url, self_rotation=5, timeout=5, data=None, header={}) -> BeautifulSoup:
 	"""
 	打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常
+	:param header:请求头
 	:param data: 携带参数,为字典对象如{k:v}
 	:param url: 要打开的url地址
 	:param self_rotation: 自旋次数
@@ -25,7 +28,7 @@ def open_url(url, self_rotation=5, timeout=5, data=None,header={}) -> BeautifulS
 		data = bytes(urllib.parse.urlencode(data), encoding='utf8')
 	while i < self_rotation:
 		try:
-			request=urllib.request.Request(url,data,header)
+			request = urllib.request.Request(url, data, header)
 			html = urlopen(request, timeout=timeout).read()
 			return html
 		except error.HTTPError as e:
@@ -47,10 +50,11 @@ def open_url(url, self_rotation=5, timeout=5, data=None,header={}) -> BeautifulS
 	raise RuntimeError('尝试%d次连接失败,网络异常!' % self_rotation)
 
 
-def open_url_return_bsobj(url, self_rotation=5, timeout=5, data=None):
+def open_url_return_bsobj(url, self_rotation=5, timeout=5, data=None, from_encoding="utf-8"):
 	"""
 	打开url,如果超时则自旋重试,重试次数太多则放弃并抛出异常，返回BeautifulSoup文档对象，
 	该方法相当于直接调用open_url并调用BeautifulSoup(data, "html.parser", from_encoding="utf-8")
+	:param from_encoding: 编码
 	:param data: 携带参数,为字典对象如{k:v}
 	:param url: 要打开的url地址
 	:param self_rotation: 自旋次数
@@ -58,8 +62,8 @@ def open_url_return_bsobj(url, self_rotation=5, timeout=5, data=None):
 	:return: BeautifulSoup文档对象
 	:raise RuntimeError: 失败次数超过允许的自旋重试次数,则抛出此异常
 	"""
-	data = open_url(url, self_rotation=5, timeout=5, data=None)
-	bsObj = BeautifulSoup(data, "html.parser", from_encoding="utf-8")
+	data = open_url(url, self_rotation=self_rotation, timeout=timeout, data=data)
+	bsObj = BeautifulSoup(data, "html.parser", from_encoding=from_encoding)
 	return bsObj
 
 
@@ -195,16 +199,46 @@ def createListCSV(path="", table_list=[], head=[]):
 		csvFile.close()
 
 
-def log_progress(i: int, length: int, start_from_zero=True):
+def log_progress(i: int, length: int, start_from_zero=True, detailedLog=False):
 	"""
 	日志打印记录当前进度
-	:param i: 当前位置 应大于1
+
+	:param i: 当前位置
 	:param length: 总长度
-	:param start_from_zero: 值是否从0开始  True:  计算进度时，i和length将会+1再做计算 False:不做修改
-	:return:
+	:param start_from_zero: 值是否从0开始,默认为True  True:  计算进度时，i将会+1再做计算 False:不做修改
+	:param detailedLog: 是否打印详细日志，默认为False 当值为False:只有进度为整数百分比 如 2%时才打印，值为True则都打印
 	"""
 	np.set_printoptions(suppress=True)
 	if start_from_zero:
 		i += 1
 	progress = round(i / length, 5) * 100
+	if not detailedLog:
+		if not progress == int(progress):
+			return
 	print('已完成进度：%.5f%%' % progress)
+
+
+def download(url, filename: str, self_rotation=5, timeout=5):
+	"""
+
+	从给定的url中下载数据到指定文件中
+
+	:param url:要下载的资源路径
+	:param filename:下载保存的文件位置
+	:param self_rotation:自旋报错次数
+	:param timeout:超时时间
+	:return:
+	"""
+	socket.setdefaulttimeout(timeout)
+	count = 0
+	while count <= self_rotation:
+		try:
+			request.urlretrieve(url, filename)
+			break
+		except socket.timeout:
+			if count > 5:
+				print("from ", url, " download job failed!")
+				raise RuntimeError('尝试%d次下载失败,网络异常!' % self_rotation)
+			err_info = 'Reloading for %d time' % count if count == 1 else 'Reloading for %d times' % count
+			print(err_info)
+			count += 1

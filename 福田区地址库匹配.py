@@ -4,14 +4,16 @@ import pandas as pd
 import json
 import urllib
 import numpy as np
-filename = 'E:\\svn仓库\\svnrepo\\python\\03data\\data\\各委办局直接过来的数据\\警情案件数据\\2008-2018事故数据\\事故数据+时间.csv'
+# filename = 'E:\\svn仓库\\svnrepo\\python\\03data\\data\\各委办局直接过来的数据\\警情案件数据\\2008-2018事故数据\\事故数据+时间.csv'
+filename='E:\\svn仓库\\svnrepo\\python\\02clean&model\\data\\消防相关\\2018年12月-2019年2月火情数据\\2018年12月份火灾数据.csv'
 with open(filename, "r", encoding='utf-8',newline='') as file:
+	# df=pd.read_excel(file,dtype=str)
 	df = pd.read_csv(file, dtype=str)
 	df['STREET'] = None
 	df['COMMUNITY'] = None
 	df['FWDM'] = None
 	for x in range(len(df.index)):
-		addr = df['事故地点'].iloc[x]
+		addr = df['起火地点'].iloc[x]
 		if addr is None or addr=='' or (isinstance(addr,float) and np.isnan(addr)):
 			continue
 		try:
