@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+from matplotlib import pyplot as plt
 
-print((5000*100/10000)==50)
-
-print(20.001==20)
-
-print(int(0.1111))
-
-print(int(2.000000))
-
-
+x = np.arange(1, 11)
+y = 2 * x + 5
+plt.title("Matplotlib demo")
+plt.xlabel("x axis caption")
+plt.ylabel("y axis caption")
+plt.plot(x, y)
+plt.show()
 
 
 

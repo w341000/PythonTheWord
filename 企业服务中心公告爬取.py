@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import re
-from urllib import request
-from urllib import parse
-from os import path
 import os
+import re
+from os import path
+from urllib import parse
+from urllib import request
+
 from selenium import webdriver
 
 browser = webdriver.Chrome()
@@ -18,12 +19,12 @@ def downloadpdf(url, directory):
 	"""
 	try:
 		browser.get(url)
-		tags =browser.find_elements_by_css_selector('#zt-text a')
-		time=re.search('\d{4}-\d{2}-\d{2}',browser.find_element_by_css_selector('p[style="text-align: center;"]').text).group()
-		for tag in tags:
-			filename=tag.text
+		a_tags =browser.find_elements_by_css_selector('a[class="updatecss"]')
+		time=re.search('\d{4}-\d{2}-\d{2}',browser.find_element_by_css_selector('h6 label em').text).group()
+		for a_tag in a_tags:
+			filename=a_tag.text
 			filename='('+time+')'+filename
-			href=tag.get_attribute('href')
+			href=a_tag.get_attribute('href')
 			if re.search(".*\.pdf",href) is None :
 				continue
 			pdfurl=parse.urljoin(url,href)
@@ -54,12 +55,13 @@ def get_infourl(url, pattern):
 		browser.close()
 		raise RuntimeError('404错误')
 	browser.get(url)
-	tags=browser.find_elements_by_css_selector('.dropbox ul a')
+	tags=browser.find_elements_by_css_selector('.gl-list li a')
 	url_arr = []
 	# 只获取高层次专业人才认定公式公告
 	for tag in tags:
 		href=tag.get_attribute("href")
-		title = tag.get_attribute("title")
+		title = tag.text;
+		# tag.get_attribute("title")
 		if '拟' in title:
 			continue
 		if re.search(pattern, string=title) is not None:
@@ -69,7 +71,7 @@ def get_infourl(url, pattern):
 
 
 def main():
-	url_prefix = "http://www.szft.gov.cn/bmxx/qqyfzfwzx/xwzx/tzgg/"
+	url_prefix = "http://www.szft.gov.cn/bmxx/qqyfzfwzx/tzgg/"
 	table_dict = {}
 	i=0
 	while True:

@@ -3,13 +3,14 @@
 import csv
 import os
 import re
-import urllib
-from urllib.request import urlopen
-from urllib import error
-from bs4 import BeautifulSoup
-import numpy as np
 import socket
+import urllib
+from urllib import error
 from urllib import request
+from urllib.request import urlopen
+
+import numpy as np
+from bs4 import BeautifulSoup
 
 
 def open_url(url, self_rotation=5, timeout=5, data=None, header={}) -> BeautifulSoup:
@@ -19,7 +20,7 @@ def open_url(url, self_rotation=5, timeout=5, data=None, header={}) -> Beautiful
 	:param data: 携带参数,为字典对象如{k:v}
 	:param url: 要打开的url地址
 	:param self_rotation: 自旋次数
-	:param timeout: 超时时间
+	:param timeout: 超时时间(秒)
 	:return:
 	:raise RuntimeError: 失败次数超过允许的自旋重试次数,则抛出此异常
 	"""
@@ -218,11 +219,12 @@ def log_progress(i: int, length: int, start_from_zero=True, detailedLog=False):
 	print('已完成进度：%.5f%%' % progress)
 
 
-def download(url, filename: str, self_rotation=5, timeout=5):
+def download(url, filename: str, self_rotation=5, timeout=5, headers={}):
 	"""
 
 	从给定的url中下载数据到指定文件中
 
+	:param headers:
 	:param url:要下载的资源路径
 	:param filename:下载保存的文件位置
 	:param self_rotation:自旋报错次数
@@ -230,6 +232,13 @@ def download(url, filename: str, self_rotation=5, timeout=5):
 	:return:
 	"""
 	socket.setdefaulttimeout(timeout)
+	if headers:
+		header_list = []
+		for key in headers:
+			header_list.append((key, headers[key]))
+		opener = urllib.request.build_opener()
+		opener.addheaders=header_list
+		urllib.request.install_opener(opener)
 	count = 0
 	while count <= self_rotation:
 		try:
